@@ -1,8 +1,8 @@
 #ifndef LIBTORRENT_WRAPPER_UTILS_HPP_
 #define LIBTORRENT_WRAPPER_UTILS_HPP_
 
-#include "../libtorrent/include/libtorrent/sha1_hash.hpp"
-#include "../libtorrent/include/libtorrent/socket.hpp"
+#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/socket.hpp"
 
 #include "rust/cxx.h"
 #include <string>

@@ -831,6 +831,21 @@ pub mod ffi {
         pub prev_timestamp: i64,
     }
 
+    #[derive(Debug)]
+    pub struct InfoHash {
+        pub v1: String,
+        pub v2: String,
+    }
+
+    #[derive(Debug)]
+    pub struct AddTorrentParams {
+        pub version: i32,
+        pub name: String,
+        pub save_path: String,
+        pub info_hash: String,
+        pub info_hashes: InfoHash,
+    }
+
     unsafe extern "C++" {
         include!("libtorrent-rasterbar-sys/wrap/wrapper.hpp");
 
@@ -878,11 +893,13 @@ pub mod ffi {
             log_size: u32,
         ) -> Result<UniquePtr<Session>>;
 
+        fn create_session_default() -> Result<UniquePtr<Session>>;
+
         // Session impl
         // {{{
-        fn add_torrent(self: &Session, torrent_path: &str, torrent_param_list: &[ParamPair]) -> Result<()>;
+        fn add_torrent(self: &Session, torrent_path: &str, torrent_param_list: &[ParamPair]) -> Result<AddTorrentParams>;
 
-        fn add_magnet(self: &Session, magnet_uri: &str, torrent_param_list: &[ParamPair]) -> Result<()>;
+        fn add_magnet(self: &Session, magnet_uri: &str, torrent_param_list: &[ParamPair]) -> Result<AddTorrentParams>;
 
         fn remove_torrent(self: &Session, info_hash_str: &str, delete_files: bool);
 

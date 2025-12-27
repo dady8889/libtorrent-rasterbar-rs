@@ -168,7 +168,6 @@ dependencies = [
 name = "libtorrent-rasterbar-sys"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "bitflags",
  "cxx",
  "cxx-build",

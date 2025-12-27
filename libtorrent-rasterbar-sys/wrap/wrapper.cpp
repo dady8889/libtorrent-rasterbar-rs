@@ -1,22 +1,22 @@
 #include "wrapper.hpp"
 
-#include "../libtorrent/include/libtorrent/add_torrent_params.hpp"
-#include "../libtorrent/include/libtorrent/alert.hpp"
-#include "../libtorrent/include/libtorrent/alert_types.hpp"
-#include "../libtorrent/include/libtorrent/announce_entry.hpp"
-#include "../libtorrent/include/libtorrent/aux_/path.hpp"
-#include "../libtorrent/include/libtorrent/download_priority.hpp"
-#include "../libtorrent/include/libtorrent/error_code.hpp"
-#include "../libtorrent/include/libtorrent/load_torrent.hpp"
-#include "../libtorrent/include/libtorrent/magnet_uri.hpp"
-#include "../libtorrent/include/libtorrent/read_resume_data.hpp"
-#include "../libtorrent/include/libtorrent/session_types.hpp"
-#include "../libtorrent/include/libtorrent/string_view.hpp"
-#include "../libtorrent/include/libtorrent/time.hpp"
-#include "../libtorrent/include/libtorrent/torrent_flags.hpp"
-#include "../libtorrent/include/libtorrent/torrent_handle.hpp"
-#include "../libtorrent/include/libtorrent/units.hpp"
-#include "../libtorrent/include/libtorrent/write_resume_data.hpp"
+#include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/announce_entry.hpp"
+#include "libtorrent/aux_/path.hpp"
+#include "libtorrent/download_priority.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/load_torrent.hpp"
+#include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/session_types.hpp"
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/torrent_flags.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/write_resume_data.hpp"
 
 #include "libtorrent-rasterbar-sys/src/lib.rs.h"
 #include "states.hpp"
@@ -184,6 +184,21 @@ TorrentInfo cast_torrent_info(const lt::torrent_info& lt_ti) {
   return ti;
 }
 
+AddTorrentParams cast_add_torrent_params(const lt::add_torrent_params& lt_atp) {
+  AddTorrentParams atp;
+  atp.version = lt_atp.version;
+  atp.name = rust::String::lossy(lt_atp.name);
+  atp.save_path = rust::String::lossy(lt_atp.save_path);
+  atp.info_hash = rust::String::lossy(to_hex(lt_atp.info_hash));
+  
+  atp.info_hashes = InfoHash {
+    .v1 = lt_atp.info_hashes.has_v1() ? rust::String::lossy(to_hex(lt_atp.info_hashes.v1)) : rust::String::lossy(""),
+    .v2 = lt_atp.info_hashes.has_v2() ? rust::String::lossy(to_hex(lt_atp.info_hashes.v2)) : rust::String::lossy("")
+  };
+
+  return atp;
+}
+
 Session::Session(lt::session_params params, std::uint32_t save_state_flags,
                  std::string session_state_path, std::string resume_dir,
                  std::string torrent_dir, std::uint32_t log_size)
@@ -196,6 +211,13 @@ Session::Session(lt::session_params params, std::uint32_t save_state_flags,
 
   // load all resume data
   load_all_resume_data();
+}
+
+Session::Session() {
+  lt_session = std::make_shared<lt::session>(lt::session());
+  m_running = true;
+
+  m_thread = std::make_shared<std::thread>([=] { poll_alerts(); });
 }
 
 Session::~Session() {
@@ -467,6 +489,8 @@ std::unique_ptr<Session> create_session(bool min_memory_usage, bool high_perform
                                    log_size);
 }
 
+std::unique_ptr<Session> create_session_default() { return std::make_unique<Session>(); }
+
 std::string Session::get_resume_file_path(lt::sha1_hash info_hash) const {
   std::string info_hash_str = to_hex(info_hash);
   std::string resume_file(m_resume_dir);
@@ -621,7 +645,7 @@ void Session::add_torrent_from_parmas(
 // add torrent to session
 // - torrent_path: path to torrent file
 // - torrent_param_list: list of key-value pairs see: libtorrent/add_torrent_params.hpp
-void Session::add_torrent(rust::Str torrent_path,
+AddTorrentParams Session::add_torrent(rust::Str torrent_path,
                           rust::Slice<const ParamPair> torrent_param_list) const {
   std::string tp = rust_str_to_string(torrent_path);
   std::printf("Add %s\n", tp.data());
@@ -639,9 +663,10 @@ void Session::add_torrent(rust::Str torrent_path,
   }
 
   add_torrent_from_parmas(atp, torrent_param_list);
+  return cast_add_torrent_params(atp);
 }
 
-void Session::add_magnet(rust::Str magnet_uri,
+AddTorrentParams Session::add_magnet(rust::Str magnet_uri,
                          rust::Slice<const ParamPair> torrent_param_list) const {
   std::string mu = rust_str_to_string(magnet_uri);
   std::printf("Add %s\n", mu.data());
@@ -664,6 +689,7 @@ void Session::add_magnet(rust::Str magnet_uri,
   }
 
   add_torrent_from_parmas(atp, torrent_param_list);
+  return cast_add_torrent_params(atp);
 }
 
 std::unique_ptr<TorrentHandle>

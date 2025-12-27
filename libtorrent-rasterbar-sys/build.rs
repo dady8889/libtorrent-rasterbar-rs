@@ -26,7 +26,7 @@ fn build_at_unix() {
 
     let mut build = cxx_build::bridge("src/lib.rs");
 
-    build.flag("-std=c++14");
+    build.flag("-std=c++20");
 
     // Optimization and visibility flags
     build.flag_if_supported("-O3");
@@ -105,40 +105,28 @@ fn build_at_unix() {
 }
 
 fn build_at_windows() {
-    println!("cargo:rustc-link-lib=crypto");
-    println!("cargo:rustc-link-lib=ssl");
+    // pull_submodules();
 
-    // Link against Boost libraries on Windows
-    let boost_root = std::env::var("BOOST_ROOT").expect("BOOST_ROOT environment variable must be set");
-    println!("cargo:rustc-link-search={}\\stage\\lib", boost_root);
-    println!("cargo:rustc-link-lib=boost_filesystem-vc143-mt-x64-1_78");
-
-    pull_submodules();
-
-    if std::fs::exists(r"libtorrent\deps\try_signal\test.cpp").unwrap() {
-        std::fs::remove_file(r"libtorrent\deps\try_signal\test.cpp").unwrap();
-    }
-    if std::fs::exists(r"libtorrent\deps\try_signal\example.cpp").unwrap() {
-        std::fs::remove_file(r"libtorrent\deps\try_signal\example.cpp").unwrap();
-    }
+    // if std::fs::exists(r"libtorrent\deps\try_signal\test.cpp").unwrap() {
+    //     std::fs::remove_file(r"libtorrent\deps\try_signal\test.cpp").unwrap();
+    // }
+    // if std::fs::exists(r"libtorrent\deps\try_signal\example.cpp").unwrap() {
+    //     std::fs::remove_file(r"libtorrent\deps\try_signal\example.cpp").unwrap();
+    // }
 
     let mut build = cxx_build::bridge(r"src\lib.rs");
 
     // Set C++ standard
-    build.flag("/std:c++14");
+    build.flag("/std:c++20");
     build.flag("/EHsc"); // Enable C++ exceptions
-    build.flag("/MD"); // Use multithreaded DLL runtime
-
-    // Include directories
-    let boost_root = std::env::var("BOOST_ROOT").expect("BOOST_ROOT environment variable must be set");
-    build.include(format!("{}\\include", boost_root));
-    build.include(format!("{}\\include\\boost-1_78", boost_root));
+    // build.flag("/MD"); // Use multithreaded DLL runtime
+    build.flag("/MT"); // static build
 
     // Optimization and visibility flags
     build.flag("/O2");
 
     // Warning flags
-    build.flag("/W3");
+    // build.flag("/W3");
 
     // Template depth
     build.flag_if_supported("-ftemplate-depth-512");
@@ -160,29 +148,44 @@ fn build_at_windows() {
         .define("TORRENT_USE_LIBCRYPTO", None)
         .define("TORRENT_USE_OPENSSL", None)
         .define("TORRENT_USE_UNC_PATHS", None)
-        .define("_FILE_OFFSET_BITS", "64");
+        .define("_FILE_OFFSET_BITS", "64")
+        .define("_WIN32_WINNT=0x0A00", None);
 
-    // Include directories
-    let boost_root = std::env::var("BOOST_ROOT").expect("BOOST_ROOT environment variable must be set");
-    build.include(format!(r"{}\include", boost_root));
+    if let Ok(libtorrent_path) = std::env::var("LIBTORRENT_ROOT") {
+        build.include(format!(r"{}\include", &libtorrent_path));
+        build.include(format!(r"{}\..\deps\try_signal", &libtorrent_path));
+    } else {
+        build.include(r"libtorrent\include");
+        build.include(r"libtorrent\include\libtorrent");
+        build.include(r"libtorrent\deps\try_signal");
+    }
 
-    build.include(r"libtorrent\include");
-    build.include(r"libtorrent\include\libtorrent");
-    build.include(r"libtorrent\deps\try_signal");
+    if let Ok(openssl_path) = std::env::var("OPENSSL_ROOT") {
+        build.include(format!(r"{}\include", &openssl_path));
+        println!("cargo:rustc-link-search={}\\lib\\VC\\x64\\MT", &openssl_path);
+        println!("cargo:rustc-link-lib=libcrypto_static");
+        println!("cargo:rustc-link-lib=libssl_static");
+    }
+
+    if let Ok(boost_path) = std::env::var("BOOST_ROOT") {
+        build.include(&boost_path);
+        println!("cargo:rustc-link-search={}\\lib64-msvc-14.3", &boost_path);
+        println!("cargo:rustc-link-lib=libboost_filesystem-vc143-mt-s-x64-1_90");
+    }
 
     // Add wrapper files
     for cpp in glob(r"wrap\*.cpp").unwrap().flatten() {
         build.file(cpp);
     }
-    for cpp in glob(r"libtorrent\src\*.cpp").unwrap().flatten() {
-        build.file(cpp);
-    }
-    for cpp in glob(r"libtorrent\src\**\*.cpp").unwrap().flatten() {
-        build.file(cpp);
-    }
-    for cpp in glob(r"libtorrent\deps\try_signal\*.cpp").unwrap().flatten() {
-        build.file(cpp);
-    }
+    // for cpp in glob(r"libtorrent\src\*.cpp").unwrap().flatten() {
+    //     build.file(cpp);
+    // }
+    // for cpp in glob(r"libtorrent\src\**\*.cpp").unwrap().flatten() {
+    //     build.file(cpp);
+    // }
+    // for cpp in glob(r"libtorrent\deps\try_signal\*.cpp").unwrap().flatten() {
+    //     build.file(cpp);
+    // }
 
     // Compile
     build.compile("libtorrent-rasterbar-wrapper");

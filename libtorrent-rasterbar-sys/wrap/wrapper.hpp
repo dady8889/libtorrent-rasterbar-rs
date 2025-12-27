@@ -1,12 +1,12 @@
 #ifndef LIBTORRENT_WRAPPER_HPP_
 #define LIBTORRENT_WRAPPER_HPP_
 
-#include "../libtorrent/include/libtorrent/session.hpp"
-#include "../libtorrent/include/libtorrent/torrent_handle.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/time.hpp"
 
 #include "rust/cxx.h"
 #include "states.hpp"
-#include "time.hpp"
 
 #include <deque>
 #include <memory>
@@ -28,6 +28,8 @@ struct AnnounceEndpoint;
 struct AnnounceEntry;
 struct Log;
 struct TwoSessionStats;
+struct InfoHash;
+struct AddTorrentParams;
 
 class TorrentHandle;
 
@@ -35,16 +37,17 @@ class Session {
   friend class TorrentHandle;
 
 public:
+  Session();
   Session(lt::session_params params, std::uint32_t save_state_flags,
           std::string session_state_path, std::string resume_dir, std::string torrent_dir,
           std::uint32_t log_size);
   ~Session();
 
-  void add_torrent(rust::Str torrent_path,
+  AddTorrentParams add_torrent(rust::Str torrent_path,
                    rust::Slice<const ParamPair> torrent_param_list) const;
 
-  void add_magnet(rust::Str magnet_uri,
-                  rust::Slice<const ParamPair> torrent_param_list) const;
+  AddTorrentParams add_magnet(rust::Str magnet_uri,
+                   rust::Slice<const ParamPair> torrent_param_list) const;
 
   std::unique_ptr<TorrentHandle> get_torrent_handle(rust::Str info_hash_str) const;
 
@@ -139,6 +142,8 @@ std::unique_ptr<Session> create_session(bool min_memory_usage, bool high_perform
                                         rust::Str session_state_path,
                                         rust::Str resume_dir, rust::Str torrent_dir,
                                         std::uint32_t log_size);
+
+std::unique_ptr<Session> create_session_default();
 
 class TorrentHandle {
 public:

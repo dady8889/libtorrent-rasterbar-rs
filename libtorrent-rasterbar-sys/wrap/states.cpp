@@ -1,8 +1,8 @@
 #include "states.hpp"
-#include "../libtorrent/include/libtorrent/session_stats.hpp"
-#include "../libtorrent/include/libtorrent/span.hpp"
-#include "../libtorrent/include/libtorrent/time.hpp"
-#include "../libtorrent/include/libtorrent/torrent_status.hpp"
+#include "libtorrent/session_stats.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/torrent_status.hpp"
 
 #include <cstdint>
 #include <vector>

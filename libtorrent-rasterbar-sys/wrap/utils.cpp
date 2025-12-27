@@ -1,8 +1,8 @@
 #include "utils.hpp"
 #include "rust/cxx.h"
 
-#include "../libtorrent/include/libtorrent/address.hpp"
-#include "../libtorrent/include/libtorrent/socket.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
 
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -105,7 +105,7 @@ std::vector<std::string> list_dir(const std::string& dir, bool recursive) {
         }
       }
     }
-  } catch (const std::exception& e) {
+  } catch (const std::exception&) {
   }
 
   return files;

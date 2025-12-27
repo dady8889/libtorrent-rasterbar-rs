@@ -1,13 +1,13 @@
 #ifndef LIBTORRENT_WRAPPER_STATES_HPP_
 #define LIBTORRENT_WRAPPER_STATES_HPP_
 
-#include "../libtorrent/include/libtorrent/alert_types.hpp"
-#include "../libtorrent/include/libtorrent/announce_entry.hpp"
-#include "../libtorrent/include/libtorrent/peer_info.hpp"
-#include "../libtorrent/include/libtorrent/session_stats.hpp"
-#include "../libtorrent/include/libtorrent/time.hpp"
-#include "../libtorrent/include/libtorrent/torrent_handle.hpp"
-#include "../libtorrent/include/libtorrent/torrent_status.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/announce_entry.hpp"
+#include "libtorrent/peer_info.hpp"
+#include "libtorrent/session_stats.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent_status.hpp"
 
 #include <cstdint>
 #include <unordered_map>
