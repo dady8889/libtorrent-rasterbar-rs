@@ -824,7 +824,9 @@ bool Session::handle_alert(lt::alert* a) {
 
   if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a)) {
     torrent_handle h = p->handle;
-    h.save_resume_data(torrent_handle::save_info_dict);
+    if (h.is_valid()) {
+      h.save_resume_data(torrent_handle::save_info_dict);
+    }
     return false;
   }
 
@@ -836,8 +838,9 @@ bool Session::handle_alert(lt::alert* a) {
                    p->error.message().c_str());
     } else {
       torrent_handle h = p->handle;
-      h.save_resume_data(torrent_handle::save_info_dict |
-                         torrent_handle::if_metadata_changed);
+      if (h.is_valid()) {
+        h.save_resume_data(torrent_handle::save_info_dict | torrent_handle::if_metadata_changed);
+      }
     }
     return false;
   }
@@ -847,8 +850,10 @@ bool Session::handle_alert(lt::alert* a) {
     // the alert handler for save_resume_data_alert
     // will save it to disk
     torrent_handle h = p->handle;
-    h.save_resume_data(torrent_handle::save_info_dict |
+    if (h.is_valid()) {
+      h.save_resume_data(torrent_handle::save_info_dict |
                        torrent_handle::if_download_progress);
+    }
     return false;
   }
 
@@ -917,17 +922,23 @@ bool Session::handle_alert(lt::alert* a) {
     // the alert handler for save_resume_data_alert
     // will save it to disk
     torrent_handle h = p->handle;
-    h.save_resume_data(torrent_handle::save_info_dict);
+    if (h.is_valid()) {
+      h.save_resume_data(torrent_handle::save_info_dict);
+    }
     return false;
   }
 
   if (torrent_removed_alert* p = alert_cast<torrent_removed_alert>(a)) {
-    m_torrent_state.remove(p->handle);
-    m_peer_state.remove(p->handle);
-    m_file_progress_state.remove(p->handle);
-    m_piece_info_state.remove(p->handle);
-    m_piece_availability_state.remove(p->handle);
-    m_tracker_state.remove(p->handle);
+    torrent_handle h = p->handle;
+    if (!h.is_valid()) {
+      return false;
+    }
+    m_torrent_state.remove(h);
+    m_peer_state.remove(h);
+    m_file_progress_state.remove(h);
+    m_piece_info_state.remove(h);
+    m_piece_availability_state.remove(h);
+    m_tracker_state.remove(h);
     return false;
   }
 
