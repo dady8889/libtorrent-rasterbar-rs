@@ -930,9 +930,7 @@ bool Session::handle_alert(lt::alert* a) {
 
   if (torrent_removed_alert* p = alert_cast<torrent_removed_alert>(a)) {
     torrent_handle h = p->handle;
-    if (!h.is_valid()) {
-      return false;
-    }
+    // NOTE: dont check h.is_valid here, it will be invalid
     m_torrent_state.remove(h);
     m_peer_state.remove(h);
     m_file_progress_state.remove(h);
