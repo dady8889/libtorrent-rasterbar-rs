@@ -107,14 +107,8 @@ fn build_at_unix() {
 fn build_at_windows() {
     // pull_submodules();
 
-    // if std::fs::exists(r"libtorrent\deps\try_signal\test.cpp").unwrap() {
-    //     std::fs::remove_file(r"libtorrent\deps\try_signal\test.cpp").unwrap();
-    // }
-    // if std::fs::exists(r"libtorrent\deps\try_signal\example.cpp").unwrap() {
-    //     std::fs::remove_file(r"libtorrent\deps\try_signal\example.cpp").unwrap();
-    // }
-
     let mut build = cxx_build::bridge(r"src\lib.rs");
+    build.static_crt(true);
 
     // Set C++ standard
     build.flag("/std:c++20");
@@ -140,6 +134,7 @@ fn build_at_windows() {
         .define("BOOST_MULTI_INDEX_DISABLE_SERIALIZATION", None)
         .define("BOOST_NO_DEPRECATED", None)
         .define("BOOST_SYSTEM_NO_DEPRECATED", None)
+        .define("BOOST_FILESYSTEM_STATIC_LINK", None)
         .define("NDEBUG", None)
         .define("OPENSSL_NO_SSL2", None)
         .define("TORRENT_BUILDING_LIBRARY", None)
@@ -149,15 +144,32 @@ fn build_at_windows() {
         .define("TORRENT_USE_OPENSSL", None)
         .define("TORRENT_USE_UNC_PATHS", None)
         .define("_FILE_OFFSET_BITS", "64")
+        .define("_CRT_SECURE_NO_WARNINGS", None)
         .define("_WIN32_WINNT=0x0A00", None);
 
+    build.flag("/bigobj");
+    
     if let Ok(libtorrent_path) = std::env::var("LIBTORRENT_ROOT") {
         build.include(format!(r"{}\include", &libtorrent_path));
         build.include(format!(r"{}\..\deps\try_signal", &libtorrent_path));
     } else {
+        build.flag("/Zc:__cplusplus");
         build.include(r"libtorrent\include");
         build.include(r"libtorrent\include\libtorrent");
         build.include(r"libtorrent\deps\try_signal");
+
+        for cpp in glob(r"libtorrent\src\*.cpp").unwrap().flatten() {
+            build.file(cpp);
+        }
+        for cpp in glob(r"libtorrent\src\**\*.cpp").unwrap().flatten() {
+            build.file(cpp);
+        }
+        for cpp in glob(r"libtorrent\deps\try_signal\*.cpp").unwrap().flatten() {
+            if cpp.file_name().unwrap() == "test.cpp" || cpp.file_name().unwrap() == "example.cpp" {
+                continue;
+            }
+            build.file(cpp);
+        }
     }
 
     if let Ok(openssl_path) = std::env::var("OPENSSL_ROOT") {
@@ -169,23 +181,17 @@ fn build_at_windows() {
 
     if let Ok(boost_path) = std::env::var("BOOST_ROOT") {
         build.include(&boost_path);
-        println!("cargo:rustc-link-search={}\\lib64-msvc-14.3", &boost_path);
-        println!("cargo:rustc-link-lib=libboost_filesystem-vc143-mt-s-x64-1_90");
+        for cpp in glob(format!(r"{}\libs\filesystem\src\*.cpp", &boost_path).as_str()).unwrap().flatten() {
+            build.file(cpp);
+        }
+        // println!("cargo:rustc-link-search={}\\lib64-msvc-14.3", &boost_path);
+        // println!("cargo:rustc-link-lib=libboost_filesystem-vc143-mt-s-x64-1_90");
     }
 
     // Add wrapper files
     for cpp in glob(r"wrap\*.cpp").unwrap().flatten() {
         build.file(cpp);
     }
-    // for cpp in glob(r"libtorrent\src\*.cpp").unwrap().flatten() {
-    //     build.file(cpp);
-    // }
-    // for cpp in glob(r"libtorrent\src\**\*.cpp").unwrap().flatten() {
-    //     build.file(cpp);
-    // }
-    // for cpp in glob(r"libtorrent\deps\try_signal\*.cpp").unwrap().flatten() {
-    //     build.file(cpp);
-    // }
 
     // Compile
     build.compile("libtorrent-rasterbar-wrapper");
